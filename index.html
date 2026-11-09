@@ -3,169 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Restaurant Ordering</title>
+    <title>American Bistro Menu</title>
     <style>
-        /* Premium Design for US Market */
+        /* Design moderne et épuré pour les USA */
         :root {
-            --primary-color: #d4af37; /* Elegant Gold */
-            --bg-color: #1a1a1a; /* Dark Premium Background */
-            --card-bg: #2a2a2a;
-            --text-color: #ffffff;
-            --text-muted: #aaaaaa;
+            --primary-color: #d35400; /* Orange/rouge chaleureux pour l'appétit */
+            --bg-color: #f9f9f9;
+            --text-color: #2c3e50;
+            --text-muted: #7f8c8d;
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding-bottom: 120px; 
+            padding-bottom: 100px; 
         }
 
         header {
+            background-color: #fff;
             text-align: center;
-            padding: 40px 20px;
-            border-bottom: 2px solid var(--primary-color);
+            padding: 30px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
         }
 
         header h1 {
             margin: 0;
-            font-size: 32px;
-            letter-spacing: 2px;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            color: var(--primary-color);
         }
 
         header p {
-            margin-top: 10px;
+            margin-top: 5px;
             font-size: 14px;
             color: var(--text-muted);
         }
 
         .menu-container {
-            padding: 20px;
+            padding: 0 20px;
             max-width: 600px;
             margin: auto;
         }
 
+        /* La carte du plat : image à gauche, texte à droite */
         .plat {
-            background: var(--card-bg);
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
             margin-bottom: 15px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            gap: 15px; /* Espace entre l'image et le texte */
         }
 
-        .plat:hover {
-            transform: translateY(-2px);
-            border-color: var(--primary-color);
+        .plat-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover; /* L'image remplit le carré sans se déformer */
+        }
+
+        .plat-info {
+            flex-grow: 1; /* Le texte prend tout l'espace restant */
         }
 
         .plat-info h3 {
-            margin: 0 0 8px 0;
-            font-size: 20px;
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: var(--text-color);
         }
 
         .plat-info p {
             margin: 0;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .prix {
             font-weight: bold;
             color: var(--primary-color);
-            font-size: 18px;
-            margin-top: 10px;
+            font-size: 16px;
+            margin-top: 5px;
             display: block;
         }
 
         input[type="checkbox"] {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             accent-color: var(--primary-color);
             cursor: pointer;
         }
 
-        /* Checkout Bar */
+        /* Barre de commande en bas */
         .panier {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: #111;
-            padding: 20px;
-            border-top: 1px solid #333;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
 
         .total-ligne {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 22px;
-            color: var(--primary-color);
+            font-size: 20px;
         }
 
         .bouton-whatsapp {
-            background-color: #25D366;
+            background-color: #25D366; /* Vert WhatsApp */
             color: white;
             border: none;
-            padding: 18px;
+            padding: 15px;
             border-radius: 8px;
             font-size: 18px;
             font-weight: bold;
             width: 100%;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Prime Cut Bistro</h1>
+        <h1>Prime Bistro</h1>
         <p>Order directly via WhatsApp</p>
     </header>
 
     <div class="menu-container">
+        
         <!-- PLAT 1 -->
         <div class="plat">
+            <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80" alt="Burger" class="plat-image">
             <div class="plat-info">
-                <h3>Premium Ribeye Steak</h3>
-                <p>12oz prime cut, served with garlic mashed potatoes and seasonal vegetables.</p>
-                <span class="prix">$35.00</span>
+                <h3>Classic Cheeseburger</h3>
+                <p>Angus beef, cheddar, lettuce, tomato, house sauce.</p>
+                <!-- LE RESTAURATEUR MET SON PRIX ICI DANS data-prix -->
+                <span class="prix">$0.00</span>
             </div>
-            <input type="checkbox" class="case-plat" data-nom="Premium Ribeye Steak" data-prix="35">
+            <input type="checkbox" class="case-plat" data-nom="Classic Cheeseburger" data-prix="0">
         </div>
 
         <!-- PLAT 2 -->
         <div class="plat">
+            <img src="https://images.unsplash.com/photo-1600891964092-4316c288032e?w=200&q=80" alt="Steak" class="plat-image">
             <div class="plat-info">
-                <h3>Grilled Atlantic Salmon</h3>
-                <p>Fresh salmon, lemon butter sauce, quinoa salad.</p>
-                <span class="prix">$28.00</span>
+                <h3>Ribeye Steak</h3>
+                <p>12oz prime cut, garlic butter, seasonal vegetables.</p>
+                <span class="prix">$0.00</span>
             </div>
-            <input type="checkbox" class="case-plat" data-nom="Grilled Atlantic Salmon" data-prix="28">
+            <input type="checkbox" class="case-plat" data-nom="Ribeye Steak" data-prix="0">
         </div>
 
         <!-- PLAT 3 -->
         <div class="plat">
+            <img src="https://images.unsplash.com/photo-1524114664604-cd8133cd67bd?w=200&q=80" alt="Wings" class="plat-image">
             <div class="plat-info">
-                <h3>Truffle Mushroom Pasta</h3>
-                <p>Fettuccine, wild mushrooms, truffle oil, parmesan cheese.</p>
-                <span class="prix">$22.00</span>
+                <h3>Buffalo Wings</h3>
+                <p>Crispy chicken wings, classic buffalo sauce, ranch dip.</p>
+                <span class="prix">$0.00</span>
             </div>
-            <input type="checkbox" class="case-plat" data-nom="Truffle Mushroom Pasta" data-prix="22">
+            <input type="checkbox" class="case-plat" data-nom="Buffalo Wings" data-prix="0">
         </div>
+
+        <!-- PLAT 4 -->
+        <div class="plat">
+            <img src="https://images.unsplash.com/photo-1543339308-43e59d6b73a6?w=200&q=80" alt="Mac and Cheese" class="plat-image">
+            <div class="plat-info">
+                <h3>Mac & Cheese</h3>
+                <p>Creamy macaroni, sharp cheddar, toasted breadcrumbs.</p>
+                <span class="prix">$0.00</span>
+            </div>
+            <input type="checkbox" class="case-plat" data-nom="Mac & Cheese" data-prix="0">
+        </div>
+
     </div>
 
     <div class="panier">
@@ -184,9 +206,10 @@
             let total = 0;
             cases.forEach(caseACocher => {
                 if (caseACocher.checked) {
-                    total += parseInt(caseACocher.dataset.prix);
+                    total += parseFloat(caseACocher.dataset.prix);
                 }
             });
+            // Affiche le total avec 2 décimales
             affichageTotal.innerText = "$" + total.toFixed(2);
         }
 
@@ -202,8 +225,9 @@
             cases.forEach(caseACocher => {
                 if (caseACocher.checked) {
                     aChoisiUnPlat = true;
-                    message += "- " + caseACocher.dataset.nom + " ($" + caseACocher.dataset.prix + ".00)\n";
-                    total += parseInt(caseACocher.dataset.prix);
+                    let prix = parseFloat(caseACocher.dataset.prix);
+                    message += "- " + caseACocher.dataset.nom + " ($" + prix.toFixed(2) + ")\n";
+                    total += prix;
                 }
             });
 
@@ -214,7 +238,7 @@
 
             message += "\n*Total: $" + total.toFixed(2) + "*";
 
-            // Put a US phone number here later (e.g., 15551234567)
+            // METTRE LE NUMÉRO DU RESTAURANT ICI
             const numeroWhatsApp = "15551234567"; 
             
             const lien = "https://wa.me/" + numeroWhatsApp + "?text=" + encodeURIComponent(message);
@@ -222,4 +246,4 @@
         }
     </script>
 </body>
-</html>
+                    </html>
