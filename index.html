@@ -1,1 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Restaurant</title>
+    <style>
+        :root {
+            --couleur-principale: #c0392b; 
+            --couleur-fond: #fdfbf7; 
+            --couleur-texte: #333333;
+        }
 
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--couleur-fond);
+            color: var(--couleur-texte);
+            margin: 0;
+            padding-bottom: 100px; 
+        }
+
+        header {
+            background-color: var(--couleur-principale);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        header p {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .menu-container {
+            padding: 20px;
+        }
+
+        .plat {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .plat-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .plat-info p {
+            margin: 0;
+            font-size: 13px;
+            color: #777;
+        }
+
+        .prix {
+            font-weight: bold;
+            color: var(--couleur-principale);
+            font-size: 16px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        input[type="checkbox"] {
+            width: 25px;
+            height: 25px;
+            accent-color: var(--couleur-principale);
+            cursor: pointer;
+        }
+
+        .panier {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .total-ligne {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .bouton-whatsapp {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Le Restaurant Togolais</h1>
+        <p>Commandez directement sur WhatsApp</p>
+    </header>
+
+    <div class="menu-container">
+        <div class="plat">
+            <div class="plat-info">
+                <h3>Poulet Braisé</h3>
+                <p>Poulet mariné, frites et alloco</p>
+                <span class="prix">3000 FCFA</span>
+            </div>
+            <input type="checkbox" class="case-plat" data-nom="Poulet Braisé" data-prix="3000">
+        </div>
+
+        <div class="plat">
+            <div class="plat-info">
+                <h3>Riz Sauce Arachide</h3>
+                <p>Riz parfumé avec viande de bœuf</p>
+                <span class="prix">2000 FCFA</span>
+            </div>
+            <input type="checkbox" class="case-plat" data-nom="Riz Sauce Arachide" data-prix="2000">
+        </div>
+
+        <div class="plat">
+            <div class="plat-info">
+                <h3>Poisson Grillé</h3>
+                <p>Bar entier grillé, piment et attiéké</p>
+                <span class="prix">4000 FCFA</span>
+            </div>
+            <input type="checkbox" class="case-plat" data-nom="Poisson Grillé" data-prix="4000">
+        </div>
+    </div>
+
+    <div class="panier">
+        <div class="total-ligne">
+            <span>Total :</span>
+            <span id="affichage-total">0 FCFA</span>
+        </div>
+        <button class="bouton-whatsapp" onclick="commander()">Commander sur WhatsApp</button>
+    </div>
+
+    <script>
+        const cases = document.querySelectorAll('.case-plat');
+        const affichageTotal = document.getElementById('affichage-total');
+
+        function calculerTotal() {
+            let total = 0;
+            cases.forEach(caseACocher => {
+                if (caseACocher.checked) {
+                    total += parseInt(caseACocher.dataset.prix);
+                }
+            });
+            affichageTotal.innerText = total + " FCFA";
+        }
+
+        cases.forEach(caseACocher => {
+            caseACocher.addEventListener('change', calculerTotal);
+        });
+
+        function commander() {
+            let message = "Bonjour, je souhaite commander :\n";
+            let total = 0;
+            let aChoisiUnPlat = false;
+
+            cases.forEach(caseACocher => {
+                if (caseACocher.checked) {
+                    aChoisiUnPlat = true;
+                    message += "- " + caseACocher.dataset.nom + " (" + caseACocher.dataset.prix + " FCFA)\n";
+                    total += parseInt(caseACocher.dataset.prix);
+                }
+            });
+
+            if (!aChoisiUnPlat) {
+                alert("Veuillez sélectionner au moins un plat.");
+                return;
+            }
+
+            message += "\n*Total : " + total + " FCFA*";
+
+            // ⚠️ MODIFIE CE NUMÉRO ICI (sans le +) ⚠️
+            const numeroWhatsApp = "22890000000"; 
+            
+            const lien = "https://wa.me/" + numeroWhatsApp + "?text=" + encodeURIComponent(message);
+            window.open(lien, '_blank');
+        }
+    </script>
+</body>
+  </html>
