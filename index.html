@@ -83,4 +83,171 @@ var MENU = [
   {id:"s3",name:"Grilled Chicken Sandwich",desc:"Grilled chicken, lettuce, tomato, honey mustard.",price:10.49}]},
  {cat:"Pizza",icon:"🍕",items:[
   {id:"p1",name:"Pepperoni Pizza",desc:"Mozzarella and pepperoni.",sizes:PZ(11.99,16.99),extras:[{name:"Extra cheese",price:1.5}]},
-  {id:"p2",name:
+  {id:"p2",name:"Cheese Pizza",desc:"Classic tomato sauce and mozzarella.",sizes:PZ(9.99,14.99),extras:[{name:"Extra cheese",price:1.5}]},
+  {id:"p3",name:"BBQ Chicken Pizza",desc:"BBQ sauce, chicken, red onion, mozzarella.",sizes:PZ(12.99,17.99)}]},
+ {cat:"American Sides",icon:"🍟",items:[
+  {id:"d1",name:"French Fries",desc:"Golden and crispy.",sizes:[{name:"Regular",price:3.99},{name:"Large",price:5.49}]},
+  {id:"d2",name:"Onion Rings",desc:"Beer-battered onion rings.",price:5.99},
+  {id:"d3",name:"Chicken Wings",desc:"Buffalo or BBQ, with ranch.",sizes:[{name:"6 pieces",price:8.99},{name:"12 pieces",price:14.99}]},
+  {id:"d4",name:"Mozzarella Sticks",desc:"Served with marinara.",price:6.99}]},
+ {cat:"Desserts",icon:"🍰",items:[
+  {id:"e1",name:"New York Cheesecake",desc:"Rich and creamy.",price:6.49},
+  {id:"e2",name:"Apple Pie",desc:"Warm slice with cinnamon.",price:5.49},
+  {id:"e3",name:"Chocolate Brownie",desc:"Fudgy brownie.",price:4.99},
+  {id:"e4",name:"Ice Cream",desc:"Vanilla, chocolate or strawberry.",price:3.99}]},
+ {cat:"Drinks",icon:"🥤",items:[
+  {id:"k1",name:"Coca-Cola",desc:"",price:2.49},
+  {id:"k2",name:"Sprite",desc:"",price:2.49},
+  {id:"k3",name:"Lemonade",desc:"Fresh squeezed style.",price:2.99},
+  {id:"k4",name:"Iced Tea",desc:"Sweet or unsweetened.",price:2.79},
+  {id:"k5",name:"Milkshake",desc:"Vanilla, chocolate or strawberry.",price:5.49}]}
+];
+
+/* CODE DE LA PAGE (ne rien modifier en dessous) */
+var cart = [], mode = RESTO.pickup ? "pickup" : "delivery", sel = null;
+try { cart = JSON.parse(localStorage.getItem("rc_cart") || "[]"); } catch (e) { cart = []; }
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function money(n){ return "$" + Number(n || 0).toFixed(2); }
+function saveCart(){ try { localStorage.setItem("rc_cart", JSON.stringify(cart)); } catch (e) {} }
+function findItem(id){ for (var i=0;i<MENU.length;i++) for (var j=0;j<MENU[i].items.length;j++) if (MENU[i].items[j].id===id) return MENU[i].items[j]; return null; }
+function minPrice(it){ return it.sizes && it.sizes.length ? Math.min.apply(null, it.sizes.map(function(s){return s.price;})) : it.price; }
+function sub(){ return cart.reduce(function(a,l){ return a + l.unit*l.qty; }, 0); }
+
+function render(){
+  var h = '<div class="hero"><div class="in"><h1>🍔 '+esc(RESTO.name)+'</h1><p>'+esc(RESTO.description)+'</p></div></div>';
+  var tel = RESTO.phone ? 'href="tel:'+esc(RESTO.phone.replace(/[^+\d]/g,""))+'"' : 'href="#" onclick="alert(\'Phone number not available yet.\');return false"';
+  h += '<div class="actions"><a class="btn pri" '+tel+'>📞 Call Restaurant</a>'+
+       '<a class="btn pri" href="#menu">Order Now</a>'+
+       '<a class="btn sec" href="#menu">View Menu</a>'+
+       '<button class="btn sec" onclick="openInfo()">Contact Us</button></div>';
+  h += '<div class="tabs" id="menu">'+MENU.map(function(c,i){return '<a href="#c'+i+'">'+esc(c.cat)+'</a>';}).join("")+'</div>';
+  MENU.forEach(function(c,i){
+    h += '<h2 id="c'+i+'">'+esc(c.cat)+'</h2>';
+    c.items.forEach(function(x){
+      h += '<div class="item" onclick="openItem(\''+x.id+'\')"><div class="t"><b>'+esc(x.name)+'</b>'+
+           (x.desc?'<small>'+esc(x.desc)+'</small>':'')+
+           '<span class="pr">'+(x.sizes?'From ':'')+money(minPrice(x))+'</span></div>'+
+           '<div class="thumb">'+c.icon+'</div></div>';
+    });
+  });
+  h += '<footer>Powered by RESTO COMMANDE</footer>';
+  var n = cart.reduce(function(a,l){return a+l.qty;},0);
+  if (n) h += '<div class="bar"><button class="btn pri full" onclick="openCart()">View Cart ('+n+') · '+money(sub())+'</button></div>';
+  $("app").innerHTML = h;
+}
+
+function closeM(){ $("modal").innerHTML = ""; }
+
+function openInfo(){
+  $("modal").innerHTML = '<div class="back" onclick="if(event.target===this)closeM()"><div class="sheet"><h3>Contact Us</h3>'+
+    (RESTO.phone?'<p>📞 <a href="tel:'+esc(RESTO.phone.replace(/[^+\d]/g,""))+'">'+esc(RESTO.phone)+'</a></p>':'')+
+    (RESTO.email?'<p>✉️ <a href="mailto:'+esc(RESTO.email)+'">'+esc(RESTO.email)+'</a></p>':'')+
+    (RESTO.address?'<p>📍 '+esc(RESTO.address)+'</p>':'')+
+    (RESTO.hours?'<p>🕒 '+esc(RESTO.hours)+'</p>':'')+
+    (!RESTO.phone&&!RESTO.email&&!RESTO.address?'<p class="muted">Contact details coming soon.</p>':'')+
+    '<button class="btn sec full" onclick="closeM()">Close</button></div></div>';
+}
+
+function openItem(id){
+  var it = findItem(id); if (!it) return;
+  sel = {it:it, size:0, extras:[], qty:1, note:""};
+  drawItem();
+}
+function unitOf(){
+  var it = sel.it, u = it.sizes ? it.sizes[sel.size].price : it.price;
+  sel.extras.forEach(function(i){ u += it.extras[i].price; });
+  return u;
+}
+function drawItem(){
+  var it = sel.it;
+  var h = '<div class="back" onclick="if(event.target===this)closeM()"><div class="sheet"><h3>'+esc(it.name)+'</h3><p class="muted">'+esc(it.desc)+'</p>';
+  if (it.sizes) {
+    h += '<b>Size</b>' + it.sizes.map(function(s,i){
+      return '<label class="opt"><span><input type="radio" name="sz" '+(sel.size===i?'checked':'')+' onchange="selSize('+i+')">'+esc(s.name)+'</span><span>'+money(s.price)+'</span></label>';
+    }).join("");
+  }
+  if (it.extras) {
+    h += '<br><b>Extras</b>' + it.extras.map(function(s,i){
+      return '<label class="opt"><span><input type="checkbox" '+(sel.extras.indexOf(i)>=0?'checked':'')+' onchange="selExtra('+i+')">'+esc(s.name)+'</span><span>+'+money(s.price)+'</span></label>';
+    }).join("");
+  }
+  h += '<br><b>Special instructions</b><textarea rows="2" placeholder="No onions, extra sauce…" oninput="sel.note=this.value">'+esc(sel.note)+'</textarea>'+
+       '<div class="row"><div class="qty"><button onclick="selQty(-1)">−</button><b>'+sel.qty+'</b><button onclick="selQty(1)">+</button></div>'+
+       '<button class="btn pri" onclick="addCart()">Add · '+money(unitOf()*sel.qty)+'</button></div></div></div>';
+  $("modal").innerHTML = h;
+}
+function selSize(i){ sel.size = i; drawItem(); }
+function selExtra(i){ var k = sel.extras.indexOf(i); if (k>=0) sel.extras.splice(k,1); else sel.extras.push(i); drawItem(); }
+function selQty(d){ sel.qty = Math.max(1, sel.qty + d); drawItem(); }
+function addCart(){
+  var it = sel.it;
+  var size = it.sizes ? it.sizes[sel.size].name : "";
+  var ex = sel.extras.map(function(i){ return it.extras[i].name; });
+  var key = [it.id, size, ex.join("|"), sel.note].join("~");
+  var line = null;
+  cart.forEach(function(l){ if (l.key === key) line = l; });
+  if (line) line.qty += sel.qty;
+  else cart.push({key:key, name:it.name, size:size, extras:ex, unit:unitOf(), qty:sel.qty, note:sel.note});
+  saveCart(); closeM(); render();
+}
+
+function openCart(){
+  if (!cart.length) { closeM(); render(); return; }
+  if (mode==="pickup" && !RESTO.pickup) mode = "delivery";
+  if (mode==="delivery" && !RESTO.delivery) mode = "pickup";
+  var fee = mode==="delivery" ? RESTO.deliveryFee : 0;
+  var tax = sub()*RESTO.taxRate/100;
+  var total = sub()+fee+tax;
+  var h = '<div class="back" onclick="if(event.target===this)closeM()"><div class="sheet"><h3>Your Cart</h3>';
+  cart.forEach(function(l,i){
+    h += '<div class="row" style="padding:8px 0;border-bottom:1px solid var(--bd)"><div><b>'+esc(l.name)+'</b>'+(l.size?' <small>('+esc(l.size)+')</small>':'')+
+      (l.extras.length?'<br><small class="muted">+ '+esc(l.extras.join(", "))+'</small>':'')+
+      (l.note?'<br><small class="muted">“'+esc(l.note)+'”</small>':'')+'<br>'+money(l.unit*l.qty)+'</div>'+
+      '<div class="qty"><button onclick="cq('+i+',-1)">−</button><b>'+l.qty+'</b><button onclick="cq('+i+',1)">+</button></div></div>';
+  });
+  h += '<br><div class="seg">'+(RESTO.pickup?'<button class="'+(mode==="pickup"?"on":"")+'" onclick="setMode(\'pickup\')">Pickup</button>':'')+
+       (RESTO.delivery?'<button class="'+(mode==="delivery"?"on":"")+'" onclick="setMode(\'delivery\')">Delivery</button>':'')+'</div>'+
+    '<input id="cn" placeholder="Your name" autocomplete="name" value="'+esc(localStorage.getItem("rc_name")||"")+'">'+
+    '<input id="cp" type="tel" placeholder="Phone number" autocomplete="tel" value="'+esc(localStorage.getItem("rc_phone")||"")+'">'+
+    (mode==="delivery"?'<input id="ca" placeholder="Delivery address" autocomplete="street-address">':'')+
+    '<div class="tot"><div><span>Subtotal</span><span>'+money(sub())+'</span></div>'+
+    (mode==="delivery"?'<div><span>Delivery fee</span><span>'+money(fee)+'</span></div>':'')+
+    '<div><span>Tax</span><span>'+money(tax)+'</span></div>'+
+    '<div><b>Total</b><b>'+money(total)+'</b></div></div><br>'+
+    '<button class="btn pri full" onclick="placeOrder()">Place Order · '+money(total)+'</button>'+
+    '<p class="muted" style="font-size:12px;text-align:center">You pay the restaurant directly when you pick up or receive your order.</p></div></div>';
+  $("modal").innerHTML = h;
+}
+function cq(i,d){ cart[i].qty += d; if (cart[i].qty<=0) cart.splice(i,1); saveCart(); openCart(); render(); }
+function setMode(m){ mode = m; openCart(); }
+
+function placeOrder(){
+  var name = $("cn").value.trim(), phone = $("cp").value.trim();
+  var addr = mode==="delivery" ? $("ca").value.trim() : "";
+  if (!name || !phone) { alert("Please enter your name and phone number."); return; }
+  if (mode==="delivery" && !addr) { alert("Please enter your delivery address."); return; }
+  var fee = mode==="delivery" ? RESTO.deliveryFee : 0;
+  var tax = +(sub()*RESTO.taxRate/100).toFixed(2);
+  var total = +(sub()+fee+tax).toFixed(2);
+  var number = String(Date.now()).slice(-6);
+  var order = {number:number, type:mode, date:new Date().toISOString(), customer:{name:name,phone:phone,address:addr},
+               items:cart, subtotal:+sub().toFixed(2), fee:fee, tax:tax, total:total, status:"new"};
+  try {
+    var all = JSON.parse(localStorage.getItem("rc_orders") || "[]");
+    all.push(order);
+    localStorage.setItem("rc_orders", JSON.stringify(all));
+    localStorage.setItem("rc_name", name); localStorage.setItem("rc_phone", phone);
+  } catch (e) {}
+  cart = []; saveCart(); render();
+  $("modal").innerHTML = '<div class="back"><div class="sheet center"><h1>✅</h1><h3>Order sent!</h3>'+
+    '<p>Your order number is <b>#'+number+'</b>.<br>'+esc(RESTO.name)+' will start preparing it.</p>'+
+    (RESTO.phone?'<p class="muted">Questions? Call '+esc(RESTO.phone)+'</p>':'')+
+    '<button class="btn pri full" onclick="closeM()">Done</button></div></div>';
+}
+
+render();
+</script>
+</body>
+  </html>
