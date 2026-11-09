@@ -1,160 +1,179 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Restaurant</title>
+    <title>Premium Restaurant Ordering</title>
     <style>
+        /* Premium Design for US Market */
         :root {
-            --couleur-principale: #c0392b; 
-            --couleur-fond: #fdfbf7; 
-            --couleur-texte: #333333;
+            --primary-color: #d4af37; /* Elegant Gold */
+            --bg-color: #1a1a1a; /* Dark Premium Background */
+            --card-bg: #2a2a2a;
+            --text-color: #ffffff;
+            --text-muted: #aaaaaa;
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background-color: var(--couleur-fond);
-            color: var(--couleur-texte);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
-            padding-bottom: 100px; 
+            padding-bottom: 120px; 
         }
 
         header {
-            background-color: var(--couleur-principale);
-            color: white;
             text-align: center;
-            padding: 30px 20px;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
+            padding: 40px 20px;
+            border-bottom: 2px solid var(--primary-color);
         }
 
         header h1 {
             margin: 0;
-            font-size: 28px;
+            font-size: 32px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary-color);
         }
 
         header p {
             margin-top: 10px;
             font-size: 14px;
-            opacity: 0.9;
+            color: var(--text-muted);
         }
 
         .menu-container {
             padding: 20px;
+            max-width: 600px;
+            margin: auto;
         }
 
         .plat {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
             margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .plat:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-color);
         }
 
         .plat-info h3 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
+            margin: 0 0 8px 0;
+            font-size: 20px;
         }
 
         .plat-info p {
             margin: 0;
-            font-size: 13px;
-            color: #777;
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
         }
 
         .prix {
             font-weight: bold;
-            color: var(--couleur-principale);
-            font-size: 16px;
-            margin-top: 5px;
+            color: var(--primary-color);
+            font-size: 18px;
+            margin-top: 10px;
             display: block;
         }
 
         input[type="checkbox"] {
-            width: 25px;
-            height: 25px;
-            accent-color: var(--couleur-principale);
+            width: 28px;
+            height: 28px;
+            accent-color: var(--primary-color);
             cursor: pointer;
         }
 
+        /* Checkout Bar */
         .panier {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
-            padding: 15px 20px;
-            box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+            background: #111;
+            padding: 20px;
+            border-top: 1px solid #333;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
 
         .total-ligne {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 22px;
+            color: var(--primary-color);
         }
 
         .bouton-whatsapp {
             background-color: #25D366;
             color: white;
             border: none;
-            padding: 15px;
+            padding: 18px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             width: 100%;
             cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Le Restaurant Togolais</h1>
-        <p>Commandez directement sur WhatsApp</p>
+        <h1>Prime Cut Bistro</h1>
+        <p>Order directly via WhatsApp</p>
     </header>
 
     <div class="menu-container">
+        <!-- PLAT 1 -->
         <div class="plat">
             <div class="plat-info">
-                <h3>Poulet Braisé</h3>
-                <p>Poulet mariné, frites et alloco</p>
-                <span class="prix">3000 FCFA</span>
+                <h3>Premium Ribeye Steak</h3>
+                <p>12oz prime cut, served with garlic mashed potatoes and seasonal vegetables.</p>
+                <span class="prix">$35.00</span>
             </div>
-            <input type="checkbox" class="case-plat" data-nom="Poulet Braisé" data-prix="3000">
+            <input type="checkbox" class="case-plat" data-nom="Premium Ribeye Steak" data-prix="35">
         </div>
 
+        <!-- PLAT 2 -->
         <div class="plat">
             <div class="plat-info">
-                <h3>Riz Sauce Arachide</h3>
-                <p>Riz parfumé avec viande de bœuf</p>
-                <span class="prix">2000 FCFA</span>
+                <h3>Grilled Atlantic Salmon</h3>
+                <p>Fresh salmon, lemon butter sauce, quinoa salad.</p>
+                <span class="prix">$28.00</span>
             </div>
-            <input type="checkbox" class="case-plat" data-nom="Riz Sauce Arachide" data-prix="2000">
+            <input type="checkbox" class="case-plat" data-nom="Grilled Atlantic Salmon" data-prix="28">
         </div>
 
+        <!-- PLAT 3 -->
         <div class="plat">
             <div class="plat-info">
-                <h3>Poisson Grillé</h3>
-                <p>Bar entier grillé, piment et attiéké</p>
-                <span class="prix">4000 FCFA</span>
+                <h3>Truffle Mushroom Pasta</h3>
+                <p>Fettuccine, wild mushrooms, truffle oil, parmesan cheese.</p>
+                <span class="prix">$22.00</span>
             </div>
-            <input type="checkbox" class="case-plat" data-nom="Poisson Grillé" data-prix="4000">
+            <input type="checkbox" class="case-plat" data-nom="Truffle Mushroom Pasta" data-prix="22">
         </div>
     </div>
 
     <div class="panier">
         <div class="total-ligne">
-            <span>Total :</span>
-            <span id="affichage-total">0 FCFA</span>
+            <span>Total:</span>
+            <span id="affichage-total">$0.00</span>
         </div>
-        <button class="bouton-whatsapp" onclick="commander()">Commander sur WhatsApp</button>
+        <button class="bouton-whatsapp" onclick="commander()">Order on WhatsApp</button>
     </div>
 
     <script>
@@ -168,7 +187,7 @@
                     total += parseInt(caseACocher.dataset.prix);
                 }
             });
-            affichageTotal.innerText = total + " FCFA";
+            affichageTotal.innerText = "$" + total.toFixed(2);
         }
 
         cases.forEach(caseACocher => {
@@ -176,31 +195,31 @@
         });
 
         function commander() {
-            let message = "Bonjour, je souhaite commander :\n";
+            let message = "Hello, I would like to order:\n";
             let total = 0;
             let aChoisiUnPlat = false;
 
             cases.forEach(caseACocher => {
                 if (caseACocher.checked) {
                     aChoisiUnPlat = true;
-                    message += "- " + caseACocher.dataset.nom + " (" + caseACocher.dataset.prix + " FCFA)\n";
+                    message += "- " + caseACocher.dataset.nom + " ($" + caseACocher.dataset.prix + ".00)\n";
                     total += parseInt(caseACocher.dataset.prix);
                 }
             });
 
             if (!aChoisiUnPlat) {
-                alert("Veuillez sélectionner au moins un plat.");
+                alert("Please select at least one dish.");
                 return;
             }
 
-            message += "\n*Total : " + total + " FCFA*";
+            message += "\n*Total: $" + total.toFixed(2) + "*";
 
-            // ⚠️ MODIFIE CE NUMÉRO ICI (sans le +) ⚠️
-            const numeroWhatsApp = "22890000000"; 
+            // Put a US phone number here later (e.g., 15551234567)
+            const numeroWhatsApp = "15551234567"; 
             
             const lien = "https://wa.me/" + numeroWhatsApp + "?text=" + encodeURIComponent(message);
             window.open(lien, '_blank');
         }
     </script>
 </body>
-  </html>
+                    </html>
