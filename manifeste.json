@@ -8,10 +8,10 @@
   "theme_color": "#c8102e",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23c8102e'/%3E%3Ctext x='256' y='340' font-size='260' text-anchor='middle'%3E%F0%9F%8D%94%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20512%20512'%20width='512'%20height='512'%3E%20%3Crect%20width='512'%20height='512'%20fill='%23c8102e'/%3E%20%3Ccircle%20cx='256'%20cy='256'%20r='196'%20fill='%23ffffff'/%3E%20%3Ccircle%20cx='256'%20cy='256'%20r='196'%20fill='none'%20stroke='%23f0d4d9'%20stroke-width='10'/%3E%20%3Ccircle%20cx='256'%20cy='256'%20r='140'%20fill='none'%20stroke='%23e8e2d9'%20stroke-width='6'/%3E%20%3Cg%20fill='%23c8102e'%3E%20%3Crect%20x='166'%20y='150'%20width='14'%20height='86'%20rx='7'/%3E%20%3Crect%20x='190'%20y='150'%20width='14'%20height='86'%20rx='7'/%3E%20%3Crect%20x='214'%20y='150'%20width='14'%20height='86'%20rx='7'/%3E%20%3Cpath%20d='M166%20224%20H228%20V240%20Q228%20268%20204%20272%20H190%20Q166%20268%20166%20240%20Z'/%3E%20%3Crect%20x='189'%20y='262'%20width='16'%20height='104'%20rx='8'/%3E%20%3C/g%3E%20%3Cg%20fill='%23c8102e'%3E%20%3Cpath%20d='M300%20150%20Q352%20156%20352%20232%20V270%20H318%20Q300%20270%20300%20252%20Z'/%3E%20%3Crect%20x='318'%20y='262'%20width='16'%20height='104'%20rx='8'/%3E%20%3C/g%3E%20%3C/svg%3E",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     }
   ]
-    }
+}
