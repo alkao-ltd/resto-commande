@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Restaurant Dashboard | RESTO COMMANDE</title>
+<meta name="theme-color" content="#c8102e">
+<meta name="robots" content="noindex">
+<style>
+:root{--p:#c8102e;--bg:#f4f1ec;--bd:#e3ddd2;--mut:#6b6b6b}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:#1f1f1f}
+button{font:inherit;cursor:pointer}
+.top{background:var(--p);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.top b{font-size:17px}
+.nav{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+.nav button{white-space:nowrap;border:0;background:#f0ebe3;border-radius:20px;padding:8px 14px;font-weight:600}
+.nav button.on{background:var(--p);color:#fff}
+.wrap{max-width:760px;margin:0 auto;padding:12px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:14px;text-align:center}
+.stat b{display:block;font-size:26px;color:var(--p)}
+.btn{border:0;border-radius:10px;padding:11px 14px;font-weight:600;background:var(--p);color:#fff;text-decoration:none;display:inline-block}
+.btn.sec{background:#fff;color:var(--p);border:2px solid var(--p)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn.gr{background:#2e7d32}
+.btn.dk{background:#555}
+input,textarea,select{width:100%;padding:11px;border:1px solid #cfc8bd;border-radius:10px;font:inherit;margin:4px 0 10px;background:#fff}
+input[type=checkbox]{width:auto;margin:0 8px 0 0}
+label{font-weight:600;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.muted{color:var(--mut);font-size:13px}
+.thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;background:#f0ebe3;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
+.badge{padding:3px 9px;border-radius:12px;font-size:12px;font-weight:700;color:#fff}
+.s-new{background:#d32f2f}.s-preparing{background:#f57c00}.s-ready{background:#1976d2}.s-completed{background:#2e7d32}.s-cancelled{background:#777}
+.back{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:560px;max-height:94vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
+.login{max-width:380px;margin:40px auto;padding:20px}
+.err{color:#b00020;font-size:14px;min-height:18px}
+.gap>*{margin-right:6px;margin-top:6px}
+.preview{max-width:100%;max-height:140px;border-radius:10px;display:block;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="modal"></div>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, onSnapshot, query, orderBy, limit, writeBatch, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const money = n => "$" + Number(n || 0).toFixed(2);
+const DAYS = [["mon", "Monday"], ["tue", "Tuesday"], ["wed", "Wednesday"], ["thu", "Thursday"], ["fri", "Friday"], ["sat", "Saturday"], ["sun", "Sunday"]];
+
+let user = null, R = null, items = [], orders = [], tab = "dash", ordersFilter = "active", unsubs = [], firstOrders = true;
+let tmp = {};
+
+let actx;
+document.addEventListener("click", () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} });
+function beep() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, .3, .6].forEach(t => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.connect(g); g.connect(actx.destination); o.frequency.value = 880; g.gain.value = .25;
+      o.start(actx.currentTime + t); o.stop(actx.currentTime + t + .18);
+    });
+  } catch (e) {}
+}
+window.askNotif = async () => {
+  if (!("Notification" in window)) return alert("Notifications not supported on this device.");
+  const p = await Notification.requestPermission();
+  alert(p === "granted" ? "Notifications enabled." : "Notifications blocked.");
+};
+
+function pickImage(file, maxW, q) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const r = Math.min(1, maxW / img.width);
+        const c = document.createElement("canvas");
+        c.width = img.width * r; c.height = img.height * r;
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL("image/jpeg", q));
+      };
+      img.onerror = rej; img.src = fr.result;
+    };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+window.imgPicked = async (inp, key, maxW, q, prevId) => {
+  if (!inp.files[0]) return;
+  try { tmp[key] = await pickImage(inp.files[0], maxW, q); $(prevId).src = tmp[key]; $(prevId).style.display = "block"; }
+  catch (e) { alert("Could not read this image."); }
+};
+
+function loginScreen(mode) {
+  $("root").innerHTML = '<div class="login card"><h1 style="text-align:center">🍔 RESTO COMMANDE</h1>' +
+    '<p class="muted" style="text-align:center">' + (mode === "signup" ? "Create your restaurant account" : "Restaurant owner login") + '</p>' +
+    '<label>Email</label><input id="em" type="email" autocomplete="email">' +
+    '<label>Password' + (mode === "signup" ? " (6+ characters)" : "") + '</label><input id="pw" type="password" autocomplete="' + (mode === "signup" ? "new-password" : "current-password") + '">' +
+    '<div class="err" id="err"></div>' +
+    '<button class="btn" style="width:100%" onclick="doAuth(\'' + mode + '\')">' + (mode === "signup" ? "Create account" : "Log in") + '</button>' +
+    '<p style="text-align:center">' + (mode === "signup" ? '<a href="#" onclick="loginScreen(\'login\');return false">Already have an account? Log in</a>' :
+      '<a href="#" onclick="loginScreen(\'signup\');return false">New restaurant? Create account</a><br><br><a href="#" onclick="resetPw();return false">Forgot password?</a>') + '</p></div>';
+}
+window.loginScreen = loginScreen;
+window.doAuth = async mode => {
+  const e = $("em").value.trim(), p = $("pw").value;
+  try {
+    if (mode === "signup") await createUserWithEmailAndPassword(auth, e, p);
+    else await signInWithEmailAndPassword(auth, e, p);
+  } catch (x) {
+    const m = { "auth/invalid-credential": "Wrong email or password.", "auth/email-already-in-use": "This email is already used.", "auth/weak-password": "Password too short (6+ characters).", "auth/invalid-email": "Invalid email." };
+    $("err").textContent = m[x.code] || x.message;
+  }
+};
+window.resetPw = async () => {
+  const e = $("em").value.trim();
+  if (!e) return ($("err").textContent = "Type your email first.");
+  try { await sendPasswordResetEmail(auth, e); $("err").textContent = "Reset email sent."; } catch (x) { $("err").textContent = x.message; }
+};
+window.logout = () => signOut(auth);
+
+onAuthStateChanged(auth, async u => {
+  unsubs.forEach(f => f()); unsubs = []; R = null; items = []; orders = []; firstOrders = true;
+  user = u;
+  if (!u) return loginScreen("login");
+  $("root").innerHTML = '<div class="wrap">Loading…</div>';
+  const ref = doc(db, "restaurants", u.uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) await createRestaurant(u);
+  unsubs.push(onSnapshot(ref, s => { R = s.data(); if (R) { document.documentElement.style.setProperty("--p", R.primary || "#c8102e"); if (!["info", "hours", "settings"].includes(tab) || !$("view")) shell(); } }));
+  unsubs.push(onSnapshot(collection(db, "restaurants", u.uid, "items"), s => { items = s.docs.map(d => ({ id: d.id, ...d.data() })); if (tab === "menu" && !$("modal").innerHTML) view(); }));
+  unsubs.push(onSnapshot(query(collection(db, "restaurants", u.uid, "orders"), orderBy("createdAt", "desc"), limit(150)), s => {
+    orders = s.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!firstOrders) s.docChanges().forEach(c => {
+      if (c.type === "added" && c.doc.data().status === "new") {
+        beep();
+        try { if (Notification.permission === "granted") new Notification("New order #" + c.doc.data().number, { body: money(c.doc.data().total) }); } catch (e) {}
+      }
+    });
+    firstOrders = false;
+    if (R && (tab === "dash" || tab === "orders")) view();
+    badge();
+  }));
+});
+
+async function createRestaurant(u) {
+  const hours = {}; DAYS.forEach(([k]) => hours[k] = { open: "11:00", close: "22:00", closed: false });
+  const cats = ["Burgers", "Sandwiches", "Pizza", "American Sides", "Desserts", "Drinks"];
+  await setDoc(doc(db, "restaurants", u.uid), {
+    name: "My Restaurant", phone: "", email: u.email || "", address: "", description: "Fresh American favorites, made to order.",
+    logo: "", cover: "", primary: "#c8102e", categories: cats, hours,
+    settings: { accepting: true, pickup: true, delivery: true, deliveryFee: 3.99, taxRate: 8, minOrder: 0 },
+    stripe: { enabled: false }, ownerUid: u.uid, createdAt: serverTimestamp()
+  });
+  const pz = (a, b) => [{ name: 'Small 10"', price: a }, { name: 'Large 14"', price: b }];
+  const ex = [{ name: "Extra cheese", price: 1 }, { name: "Bacon", price: 1.5 }, { name: "Avocado", price: 1.5 }];
+  const D = [
+    ["Burgers", "Classic American Cheeseburger", "Beef patty, American cheese, lettuce, tomato, pickles, house sauce.", 10.99, [], ex],
+    ["Burgers", "Double Bacon Cheeseburger", "Two patties, double cheese, crispy bacon.", 13.99, [], ex],
+    ["Burgers", "BBQ Burger", "Beef patty, BBQ sauce, onion rings, cheddar.", 12.49, [], ex],
+    ["Burgers", "Crispy Chicken Burger", "Crispy chicken breast, lettuce, mayo, pickles.", 11.49, [], ex],
+    ["Sandwiches", "Philly Cheesesteak", "Sliced steak, peppers, onions, melted provolone.", 12.99, [], []],
+    ["Sandwiches", "Club Sandwich", "Turkey, bacon, lettuce, tomato, toasted bread.", 10.99, [], []],
+    ["Sandwiches", "Grilled Chicken Sandwich", "Grilled chicken, lettuce, tomato, honey mustard.", 10.49, [], []],
+    ["Pizza", "Pepperoni Pizza", "Mozzarella and pepperoni.", 0, pz(11.99, 16.99), [{ name: "Extra cheese", price: 1.5 }]],
+    ["Pizza", "Cheese Pizza", "Classic tomato sauce and mozzarella.", 0, pz(9.99, 14.99), [{ name: "Extra cheese", price: 1.5 }]],
+    ["Pizza", "BBQ Chicken Pizza", "BBQ sauce, chicken, red onion, mozzarella.", 0, pz(12.99, 17.99), []],
+    ["American Sides", "French Fries", "Golden and crispy.", 0, [{ name: "Regular", price: 3.99 }, { name: "Large", price: 5.49 }], []],
+    ["American Sides", "Onion Rings", "Beer-battered onion rings.", 5.99, [], []],
+    ["American Sides", "Chicken Wings", "Buffalo or BBQ, with ranch.", 0, [{ name: "6 pieces", price: 8.99 }, { name: "12 pieces", price: 14.99 }], []],
+    ["American Sides", "Mozzarella Sticks", "Served with marinara.", 6.99, [], []],
+    ["Desserts", "New York Cheesecake", "Rich and creamy.", 6.49, [], []],
+    ["Desserts", "Apple Pie", "Warm slice with cinnamon.", 5.49, [], []],
+    ["Desserts", "Chocolate Brownie", "Fudgy brownie.", 4.99, [], []],
+    ["Desserts", "Ice Cream", "Vanilla, chocolate or strawberry.", 3.99, [], []],
+    ["Drinks", "Coca-Cola", "", 2.49, [], []],
+    ["Drinks", "Sprite", "", 2.49, [], []],
+    ["Drinks", "Lemonade", "Fresh squeezed style.", 2.99, [], []],
+    ["Drinks", "Iced Tea", "Sweet or unsweetened.", 2.79, [], []],
+    ["Drinks", "Milkshake", "Vanilla, chocolate or strawberry.", 5.49, [], []]
+  ];
+  const b = writeBatch(db);
+  D.forEach(([category, name, description, price, sizes, extras]) => {
+    b.set(doc(collection(db, "restaurants", u.uid, "items")), { category, name, description, price, sizes, extras, image: "", available: true });
+  });
+  await b.commit();
+}
+
+const TABS = [["dash", "Dashboard"], ["orders", "Orders"], ["menu", "Manage Menu"], ["info", "Edit Restaurant Information"], ["hours", "Opening Hours"], ["settings", "Restaurant Settings"]];
+function shell() {
+  if (!R) return;
+  $("root").innerHTML = '<div class="top"><b>🍔 ' + esc(R.name) + '</b><button class="btn sm dk" onclick="logout()">Log out</button></div>' +
+    '<div class="nav">' + TABS.map(([k, n]) => '<button id="t_' + k + '" class="' + (tab === k ? "on" : "") + '" onclick="goTab(\'' + k + '\')">' + n + '<span id="b_' + k + '"></span></button>').join("") + '</div>' +
+    '<div class="wrap" id="view"></div>';
+  view(); badge();
+}
+window.goTab = k => { tab = k; tmp = {}; document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.id === "t_" + k)); view(); };
+function badge() {
+  const el = $("b_orders"); if (!el) return;
+  const n = orders.filter(o => o.status === "new").length;
+  el.textContent = n ? " (" + n + ")" : "";
+}
+function view() {
+  const v = $("view"); if (!v || !R) return;
+  v.innerHTML = ({ dash, orders: ordersView, menu: menuView, info: infoView, hours: hoursView, settings: settingsView }[tab])();
+}
+
+function pageUrl() { return location.href.replace(/admin\.html.*$/, "") + "index.html?r=" + user.uid; }
+function dash() {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const today = orders.filter(o => o.createdAt && o.createdAt.toDate() >= start && o.status !== "cancelled");
+  const rev = today.reduce((a, o) => a + (o.total || 0), 0);
+  const nw = orders.filter(o => o.status === "new").length;
+  const act = orders.filter(o => ["new", "preparing", "ready"].includes(o.status)).length;
+  return '<div class="grid"><div class="stat"><b>' + nw + '</b>New orders</div><div class="stat"><b>' + act + '</b>Active orders</div>' +
+    '<div class="stat"><b>' + today.length + '</b>Orders today</div><div class="stat"><b>' + money(rev) + '</b>Sales today</div></div><br>' +
+    '<div class="card"><b>Your public ordering page</b><p class="muted" style="word-break:break-all">' + esc(pageUrl()) + '</p>' +
+    '<div class="gap"><button class="btn sm" onclick="copyLink()">Copy link</button><a class="btn sm sec" target="_blank" href="' + esc(pageUrl()) + '">Open page</a></div></div>' +
+    '<div class="card"><b>Order alerts</b><p class="muted">Keep this page open to hear a sound for each new order.</p><button class="btn sm" onclick="askNotif()">Enable notifications</button></div>';
+}
+window.copyLink = async () => { try { await navigator.clipboard.writeText(pageUrl()); alert("Link copied."); } catch (e) { prompt("Copy this link:", pageUrl()); } };
+
+function ordersView() {
+  const list = orders.filter(o => ordersFilter === "all" || ["new", "preparing", "ready"].includes(o.status));
+  let h = '<div class="row"><h2 style="margin:0">Orders</h2><select style="width:auto" onchange="ordersFilter=this.value;view()"><option value="active"' + (ordersFilter === "active" ? " selected" : "") + '>Active</option><option value="all"' + (ordersFilter === "all" ? " selected" : "") + '>All</option></select></div><br>';
+  if (!list.length) h += '<div class="card muted">No orders yet.</div>';
+  list.forEach(o => {
+    const c = o.customer || {};
+    h += '<div class="card"><div class="row"><b>#' + esc(o.number) + ' · ' + (o.type === "delivery" ? "🛵 Delivery" : "🛍️ Pickup") + '</b><span class="badge s-' + esc(o.status) + '">' + esc(o.status) + '</span></div>' +
+      '<div class="muted">' + (o.createdAt ? o.createdAt.toDate().toLocaleString() : "") + '</div>' +
+      '<p><b>' + esc(c.name) + '</b> · <a href="tel:' + esc(c.phone) + '">' + esc(c.phone) + '</a>' + (c.email ? '<br>' + esc(c.email) : '') + (c.address ? '<br>📍 ' + esc(c.address) : '') + '</p>' +
+      (o.items || []).map(i => '<div>' + i.qty + '× ' + esc(i.name) + (i.size ? ' (' + esc(i.size) + ')' : '') + (i.extras && i.extras.length ? '<div class="muted">+ ' + esc(i.extras.join(", ")) + '</div>' : '') + (i.note ? '<div class="muted">“' + esc(i.note) + '”</div>' : '') + '</div>').join("") +
+      '<p><b>Total ' + money(o.total) + '</b> <span class="muted">(subtotal ' + money(o.subtotal) + ', fee ' + money(o.fee) + ', tax ' + money(o.tax) + ')</span></p><div class="gap">' +
+      (o.status === "new" ? '<button class="btn sm gr" onclick="setStatus(\'' + o.id + '\',\'preparing\')">Accept</button>' : '') +
+      (o.status === "preparing" ? '<button class="btn sm" onclick="setStatus(\'' + o.id + '\',\'ready\')">Ready</button>' : '') +
+      (o.status === "ready" ? '<button class="btn sm gr" onclick="setStatus(\'' + o.id + '\',\'completed\')">Completed</button>' : '') +
+      (["new", "preparing", "ready"].includes(o.status) ? '<button class="btn sm sec" onclick="setStatus(\'' + o.id + '\',\'cancelled\')">Cancel</button>' : '') + '</div></div>';
+  });
+  return h;
+}
+window.ordersFilter = "active"; Object.defineProperty(window, "ordersFilter", { get: () => ordersFilter, set: v => ordersFilter = v });
+window.view = view;
+window.setStatus = (id, status) => updateDoc(doc(db, "restaurants", user.uid, "orders", id), { status });
+
+function menuView() {
+  const cats = R.categories || [];
+  let h = '<div class="row"><h2 style="margin:0">Manage Menu</h2><button class="btn" onclick="editItem()">+ Add dish</button></div><br>';
+  h += '<div class="card"><b>Categories</b>' + cats.map((c, i) => '<div class="row" style="padding:6px 0"><span>' + esc(c) + '</span><span class="gap"><button class="btn sm dk" onclick="moveCat(' + i + ',-1)">▲</button><button class="btn sm dk" onclick="moveCat(' + i + ',1)">▼</button><button class="btn sm sec" onclick="delCat(' + i + ')">✕</button></span></div>').join("") +
+    '<div class="row"><input id="nc" placeholder="New category name" style="margin:8px 0"><button class="btn sm" onclick="addCat()">Add</button></div></div>';
+  const known = new Set(cats);
+  const groups = cats.map(c => [c, items.filter(x => x.category === c)]);
+  const other = items.filter(x => !known.has(x.category));
+  if (other.length) groups.push(["Other", other]);
+  groups.forEach(([c, list]) => {
+    h += '<h3>' + esc(c) + '</h3>';
+    if (!list.length) h += '<div class="muted">No dishes.</div>';
+    list.forEach(x => {
+      h += '<div class="card row"><div class="row" style="gap:10px;min-width:0">' + (x.image ? '<img class="thumb" src="' + esc(x.image) + '">' : '<div class="thumb">🍽️</div>') +
+        '<div style="min-width:0"><b>' + esc(x.name) + '</b><div class="muted">' + (x.sizes && x.sizes.length ? "From " + money(Math.min(...x.sizes.map(s => s.price))) : money(x.price)) + '</div></div></div>' +
+        '<div class="gap" style="text-align:right"><label style="font-weight:400"><input type="checkbox" ' + (x.available !== false ? "checked" : "") + ' onchange="toggleItem(\'' + x.id + '\',this.checked)">Available</label><br>' +
+        '<button class="btn sm" onclick="editItem(\'' + x.id + '\')">Edit</button><button class="btn sm sec" onclick="delItem(\'' + x.id + '\')">Delete</button></div></div>';
+    });
+  });
+  return h;
+}
+const saveR = patch => updateDoc(doc(db, "restaurants", user.uid), patch);
+window.addCat = async () => {
+  const n = $("nc").value.trim(); if (!n) return;
+  if ((R.categories || []).includes(n)) return alert("This category already exists.");
+  await saveR({ categories: [...(R.categories || []), n] });
+};
+window.moveCat = async (i, d) => {
+  const a = [...R.categories], j = i + d; if (j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]]; await saveR({ categories: a });
+};
+window.delCat = async i => {
+  const c = R.categories[i];
+  if (items.some(x => x.category === c)) return alert("Move or delete the dishes in this category first.");
+  if (!confirm("Delete category " + c + "?")) return;
+  const a = [...R.categories]; a.splice(i, 1); await saveR({ categories: a });
+};
+window.toggleItem = (id, v) => updateDoc(doc(db, "restaurants", user.uid, "items", id), { available: v });
+window.delItem = async id => { if (confirm("Delete this dish?")) await deleteDoc(doc(db, "restaurants", user.uid, "items", id)); };
+
+const optsToText = a => (a || []).map(o => o.name + ": " + Number(o.price).toFixed(2)).join("\n");
+const textToOpts = t => t.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+  const i = l.lastIndexOf(":");
+  if (i < 0) return { name: l, price: 0 };
+  return { name: l.slice(0, i).trim(), price: Math.max(0, parseFloat(l.slice(i + 1)) || 0) };
+});
+window.editItem = id => {
+  const x = id ? items.find(i => i.id === id) : { name: "", description: "", price: "", category: (R.categories || [])[0] || "", sizes: [], extras: [], image: "", available: true };
+  tmp.item = null; tmp.itemId = id || null; tmp.itemImg = x.image || "";
+  $("modal").innerHTML = '<div class="back"><div class="sheet"><h3>' + (id ? "Edit dish" : "Add dish") + '</h3>' +
+    '<label>Name</label><input id="in" value="' + esc(x.name) + '">' +
+    '<label>Description</label><textarea id="id" rows="2">' + esc(x.description) + '</textarea>' +
+    '<label>Price ($) — used when there are no sizes</label><input id="ip" type="number" step="0.01" min="0" value="' + esc(x.price) + '">' +
+    '<label>Category</label><select id="ic">' + (R.categories || []).map(c => '<option ' + (c === x.category ? "selected" : "") + '>' + esc(c) + '</option>').join("") + '</select>' +
+    '<label>Sizes (optional) — one per line, full price: <i>Large: 14.99</i></label><textarea id="is" rows="3">' + esc(optsToText(x.sizes)) + '</textarea>' +
+    '<label>Extras (optional) — one per line, added price: <i>Bacon: 1.50</i></label><textarea id="ix" rows="3">' + esc(optsToText(x.extras)) + '</textarea>' +
+    '<label>Photo</label><img id="ipv" class="preview" ' + (x.image ? 'src="' + esc(x.image) + '"' : 'style="display:none"') + '>' +
+    '<input type="file" accept="image/*" onchange="imgPicked(this,\'itemImg\',700,0.7,\'ipv\')">' +
+    '<label><input type="checkbox" id="ia" ' + (x.available !== false ? "checked" : "") + '>Available</label><br><br>' +
+    '<div class="row"><button class="btn sec" onclick="closeM()">Cancel</button><button class="btn" onclick="saveItem()">Save</button></div></div></div>';
+};
+window.closeM = () => { $("modal").innerHTML = ""; if (tab === "menu") view(); };
+window.saveItem = async () => {
+  const name = $("in").value.trim(); if (!name) return alert("Please enter a name.");
+  const sizes = textToOpts($("is").value);
+  const price = parseFloat($("ip").value);
+  if (!sizes.length && !(price >= 0)) return alert("Please enter a price.");
+  const data = {
+    name, description: $("id").value.trim(), price: price || 0, category: $("ic").value,
+    sizes, extras: textToOpts($("ix").value), image: tmp.itemImg || "", available: $("ia").checked
+  };
+  try {
+    if (tmp.itemId) await updateDoc(doc(db, "restaurants", user.uid, "items", tmp.itemId), data);
+    else await addDoc(collection(db, "restaurants", user.uid, "items"), data);
+    closeM();
+  } catch (e) { alert("Could not save: " + e.message); }
+};
+
+function infoView() {
+  return '<h2>Edit Restaurant Information</h2><div class="card">' +
+    '<label>Restaurant name</label><input id="rn" value="' + esc(R.name) + '">' +
+    '<label>Phone number</label><input id="rp" type="tel" value="' + esc(R.phone) + '" placeholder="(555) 123-4567">' +
+    '<label>Email</label><input id="re" type="email" value="' + esc(R.email) + '">' +
+    '<label>Address</label><input id="ra" value="' + esc(R.address) + '">' +
+    '<label>Description</label><textarea id="rd" rows="3">' + esc(R.description) + '</textarea>' +
+    '<label>Brand color</label><input id="rc" type="color" value="' + esc(R.primary || "#c8102e") + '" style="height:46px">' +
+    '<label>Logo</label><img id="lgp" class="preview" ' + (R.logo ? 'src="' + esc(R.logo) + '"' : 'style="display:none"') + '><input type="file" accept="image/*" onchange="imgPicked(this,\'logo\',240,0.8,\'lgp\')">' +
+    '<label>Cover photo</label><img id="cvp" class="preview" ' + (R.cover ? 'src="' + esc(R.cover) + '"' : 'style="display:none"') + '><input type="file" accept="image/*" onchange="imgPicked(this,\'cover\',1000,0.65,\'cvp\')">' +
+    '<button class="btn" style="width:100%" onclick="saveInfo()">Save</button></div>';
+}
+window.saveInfo = async () => {
+  const p = { name: $("rn").value.trim() || "My Restaurant", phone: $("rp").value.trim(), email: $("re").value.trim(), address: $("ra").value.trim(), description: $("rd").value.trim(), primary: $("rc").value };
+  if (tmp.logo) p.logo = tmp.logo;
+  if (tmp.cover) p.cover = tmp.cover;
+  try { await saveR(p); tmp = {}; alert("Saved. Your public page is updated."); } catch (e) { alert("Could not save: " + e.message); }
+};
+
+function hoursView() {
+  const H = R.hours || {};
+  return '<h2>Opening Hours</h2><div class="card">' + DAYS.map(([k, n]) => {
+    const x = H[k] || { open: "11:00", close: "22:00", closed: false };
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><div class="row"><b>' + n + '</b><label style="font-weight:400"><input type="checkbox" id="hc_' + k + '" ' + (x.closed ? "checked" : "") + '>Closed</label></div>' +
+      '<div class="grid"><input type="time" id="ho_' + k + '" value="' + esc(x.open) + '"><input type="time" id="hx_' + k + '" value="' + esc(x.close) + '"></div></div>';
+  }).join("") + '<br><button class="btn" style="width:100%" onclick="saveHours()">Save</button></div>';
+}
+window.saveHours = async () => {
+  const hours = {}; DAYS.forEach(([k]) => hours[k] = { open: $("ho_" + k).value, close: $("hx_" + k).value, closed: $("hc_" + k).checked });
+  try { await saveR({ hours }); alert("Saved."); } catch (e) { alert(e.message); }
+};
+
+function settingsView() {
+  const S = { accepting: true, pickup: true, delivery: true, deliveryFee: 0, taxRate: 0, minOrder: 0, ...(R.settings || {}) };
+  return '<h2>Restaurant Settings</h2><div class="card">' +
+    '<label><input type="checkbox" id="sa" ' + (S.accepting ? "checked" : "") + '>Accepting online orders</label><br><br>' +
+    '<label><input type="checkbox" id="sp" ' + (S.pickup ? "checked" : "") + '>Pickup available</label><br><br>' +
+    '<label><input type="checkbox" id="sd" ' + (S.delivery ? "checked" : "") + '>Delivery available</label><br><br>' +
+    '<label>Delivery fee ($)</label><input id="sf" type="number" step="0.01" min="0" value="' + S.deliveryFee + '">' +
+    '<label>Sales tax (%)</label><input id="st" type="number" step="0.01" min="0" value="' + S.taxRate + '">' +
+    '<label>Minimum order ($)</label><input id="sm" type="number" step="0.01" min="0" value="' + S.minOrder + '">' +
+    '<button class="btn" style="width:100%" onclick="saveSettings()">Save</button></div>';
+}
+window.saveSettings = async () => {
+  const settings = { accepting: $("sa").checked, pickup: $("sp").checked, delivery: $("sd").checked, deliveryFee: parseFloat($("sf").value) || 0, taxRate: parseFloat($("st").value) || 0, minOrder: parseFloat($("sm").value) || 0 };
+  if (!settings.pickup && !settings.delivery) return alert("Enable at least Pickup or Delivery.");
+  try { await saveR({ settings }); alert("Saved."); } catch (e) { alert(e.message); }
+};
+</script>
+</body>
+  </html>
