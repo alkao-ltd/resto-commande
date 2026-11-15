@@ -1,0 +1,30 @@
+@media (min-width:900px){
+  body{font-size:16px;padding-bottom:110px}
+  .wrap{max-width:1100px!important}
+  #app.wrap{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;align-items:start;padding:0 16px 24px}
+  #app.wrap>.hero,#app.wrap>.actions,#app.wrap>.tabs,#app.wrap>h2,#app.wrap>footer,#app.wrap>.closed,#app.wrap>.center{grid-column:1/-1}
+  #app.wrap>.hero{border-radius:0 0 18px 18px;min-height:280px;margin:0 -16px}
+  #app.wrap>.hero .in{max-width:1100px;margin:0 auto;padding:28px 16px}
+  .hero h1{font-size:38px}
+  .hero p{font-size:17px}
+  .logo{width:84px;height:84px}
+  #app.wrap>.actions{margin:0 -16px;justify-content:center;gap:12px;padding:16px}
+  #app.wrap>.tabs{margin:0 -16px;justify-content:center;overflow:visible;flex-wrap:wrap}
+  #app.wrap>h2{margin:28px 4px 6px;font-size:24px}
+  .item{margin:8px 0;transition:box-shadow .15s,transform .15s}
+  .item:hover{box-shadow:0 6px 18px rgba(0,0,0,.10);transform:translateY(-2px)}
+  .thumb{width:96px;height:96px}
+  .bar{left:50%;right:auto;width:440px;transform:translateX(-50%);bottom:18px;border:1px solid var(--bd);border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.2)}
+  .back{align-items:center}
+  .sheet{border-radius:18px;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  .top{padding:14px max(24px,calc((100% - 1100px)/2 + 12px))}
+  .nav{justify-content:center}
+  .grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .stat b{font-size:34px}
+  .card{padding:20px}
+  .login{max-width:420px;margin:80px auto}
+}
+@media (min-width:1400px){
+  #app.wrap{grid-template-columns:1fr 1fr 1fr}
+  .wrap{max-width:1320px!important}
+}
