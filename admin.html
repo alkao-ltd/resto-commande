@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Restaurant Dashboard | RESTO COMMANDE</title>
 <meta name="theme-color" content="#c8102e">
-<meta name="robots" content="noindex"><link rel="manifest" href="manifeste.json">
-<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");</script>
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifeste.json">
 <style>
 :root{--p:#c8102e;--bg:#f4f1ec;--bd:#e3ddd2;--mut:#6b6b6b}
 *{box-sizing:border-box}
@@ -41,7 +41,8 @@ label{font-weight:600;font-size:14px}
 .err{color:#b00020;font-size:14px;min-height:18px}
 .gap>*{margin-right:6px;margin-top:6px}
 .preview{max-width:100%;max-height:140px;border-radius:10px;display:block;margin-bottom:8px}
-</style><link rel="stylesheet" href="desktop.css">
+</style>
+<link rel="stylesheet" href="desktop.css">
 </head>
 <body>
 <div id="root"></div>
@@ -51,8 +52,10 @@ label{font-weight:600;font-size:14px}
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, onSnapshot, query, orderBy, limit, writeBatch, serverTimestamp }
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, onSnapshot, query, orderBy, limit, writeBatch, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -60,8 +63,9 @@ const money = n => "$" + Number(n || 0).toFixed(2);
 const DAYS = [["mon", "Monday"], ["tue", "Tuesday"], ["wed", "Wednesday"], ["thu", "Thursday"], ["fri", "Friday"], ["sat", "Saturday"], ["sun", "Sunday"]];
 
 let user = null, R = null, items = [], orders = [], tab = "dash", ordersFilter = "active", unsubs = [], firstOrders = true;
-let tmp = {};
+let tmp = {}; // images en attente
 
+/* ---------- Son + notification ---------- */
 let actx;
 document.addEventListener("click", () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} });
 function beep() {
@@ -80,6 +84,7 @@ window.askNotif = async () => {
   alert(p === "granted" ? "Notifications enabled." : "Notifications blocked.");
 };
 
+/* ---------- Images : redimension + base64 ---------- */
 function pickImage(file, maxW, q) {
   return new Promise((res, rej) => {
     const fr = new FileReader();
@@ -103,6 +108,7 @@ window.imgPicked = async (inp, key, maxW, q, prevId) => {
   catch (e) { alert("Could not read this image."); }
 };
 
+/* ---------- Authentification ---------- */
 function loginScreen(mode) {
   $("root").innerHTML = '<div class="login card"><h1 style="text-align:center">🍔 RESTO COMMANDE</h1>' +
     '<p class="muted" style="text-align:center">' + (mode === "signup" ? "Create your restaurant account" : "Restaurant owner login") + '</p>' +
@@ -155,6 +161,7 @@ onAuthStateChanged(auth, async u => {
   }));
 });
 
+/* ---------- Creation du restaurant + menu de demo ---------- */
 async function createRestaurant(u) {
   const hours = {}; DAYS.forEach(([k]) => hours[k] = { open: "11:00", close: "22:00", closed: false });
   const cats = ["Burgers", "Sandwiches", "Pizza", "American Sides", "Desserts", "Drinks"];
@@ -162,8 +169,10 @@ async function createRestaurant(u) {
     name: "My Restaurant", phone: "", email: u.email || "", address: "", description: "Fresh American favorites, made to order.",
     logo: "", cover: "", primary: "#c8102e", categories: cats, hours,
     settings: { accepting: true, pickup: true, delivery: true, deliveryFee: 3.99, taxRate: 8, minOrder: 0 },
-    stripe: { enabled: false }, ownerUid: u.uid, createdAt: serverTimestamp()
+    stripe: { enabled: false }, ownerUid: u.uid, createdAt: serverTimestamp(),
+    sub: { status: "trial", plan: "trial", expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000) }
   });
+  const SZ = [{ name: "Small", price: 0 }, { name: "Large", price: 0 }];
   const pz = (a, b) => [{ name: 'Small 10"', price: a }, { name: 'Large 14"', price: b }];
   const ex = [{ name: "Extra cheese", price: 1 }, { name: "Bacon", price: 1.5 }, { name: "Avocado", price: 1.5 }];
   const D = [
@@ -198,15 +207,17 @@ async function createRestaurant(u) {
   await b.commit();
 }
 
-const TABS = [["dash", "Dashboard"], ["orders", "Orders"], ["menu", "Manage Menu"], ["info", "Edit Restaurant Information"], ["hours", "Opening Hours"], ["settings", "Restaurant Settings"]];
+/* ---------- Structure ---------- */
+const TABS = [["dash", "Dashboard"], ["orders", "Orders"], ["menu", "Manage Menu"], ["info", "Edit Restaurant Information"], ["hours", "Opening Hours"], ["settings", "Restaurant Settings"], ["sub", "Subscription"]];
 function shell() {
   if (!R) return;
+  if (!subInfo().active) tab = "sub";
   $("root").innerHTML = '<div class="top"><b>🍔 ' + esc(R.name) + '</b><button class="btn sm dk" onclick="logout()">Log out</button></div>' +
     '<div class="nav">' + TABS.map(([k, n]) => '<button id="t_' + k + '" class="' + (tab === k ? "on" : "") + '" onclick="goTab(\'' + k + '\')">' + n + '<span id="b_' + k + '"></span></button>').join("") + '</div>' +
     '<div class="wrap" id="view"></div>';
   view(); badge();
 }
-window.goTab = k => { tab = k; tmp = {}; document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.id === "t_" + k)); view(); };
+window.goTab = k => { if (!subInfo().active) k = "sub"; tab = k; tmp = {}; document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.id === "t_" + k)); view(); };
 function badge() {
   const el = $("b_orders"); if (!el) return;
   const n = orders.filter(o => o.status === "new").length;
@@ -214,9 +225,34 @@ function badge() {
 }
 function view() {
   const v = $("view"); if (!v || !R) return;
-  v.innerHTML = ({ dash, orders: ordersView, menu: menuView, info: infoView, hours: hoursView, settings: settingsView }[tab])();
+  if (!subInfo().active && tab !== "sub") tab = "sub";
+  v.innerHTML = banner() + ({ dash, orders: ordersView, menu: menuView, info: infoView, hours: hoursView, settings: settingsView, sub: subView }[tab])();
 }
 
+/* ---------- Abonnement ---------- */
+function subInfo() {
+  const s = R && R.sub;
+  if (!s || !s.expiresAt) return { legacy: true, active: true };
+  const ms = s.expiresAt.toMillis ? s.expiresAt.toMillis() : Number(s.expiresAt);
+  const left = ms - Date.now();
+  return { legacy: false, active: left > 0, days: Math.max(0, Math.ceil(left / 86400000)), date: new Date(ms), status: s.status };
+}
+function banner() {
+  const s = subInfo(); if (s.legacy) return "";
+  if (!s.active) return '<div class="card" style="background:#fdecea;border-color:#d32f2f"><b>Subscription expired.</b> Your ordering page is paused. Renew below to reopen it.</div>';
+  if (s.status === "trial" || s.days <= 7) return '<div class="card" style="background:#fff8e1;border-color:#f5b400"><b>' + (s.status === "trial" ? "Free trial" : "Subscription") + ':</b> ' + s.days + ' day(s) left.</div>';
+  return "";
+}
+function subView() {
+  const s = subInfo();
+  const wa = "https://wa.me/22890659204?text=" + encodeURIComponent("Hi, I want to subscribe / renew RESTO COMMANDE. My account: " + (user.email || ""));
+  const st = s.legacy ? "Active" : s.active ? (s.status === "trial" ? "Free trial" : "Active") + " — " + s.days + " day(s) left (until " + s.date.toLocaleDateString() + ")" : "Expired on " + s.date.toLocaleDateString();
+  return '<h2>Subscription</h2><div class="card"><b>Status</b><p>' + esc(st) + '</p>' +
+    '<p class="muted">Plans: 1 month or 3 months. Contact us to subscribe or renew. Online payment is coming soon.</p>' +
+    '<a class="btn" style="display:block;text-align:center" target="_blank" href="' + esc(wa) + '">Subscribe / Renew on WhatsApp</a></div>';
+}
+
+/* ---------- Dashboard ---------- */
 function pageUrl() { return location.href.replace(/admin\.html.*$/, "") + "index.html?r=" + user.uid; }
 function dash() {
   const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -232,6 +268,7 @@ function dash() {
 }
 window.copyLink = async () => { try { await navigator.clipboard.writeText(pageUrl()); alert("Link copied."); } catch (e) { prompt("Copy this link:", pageUrl()); } };
 
+/* ---------- Orders ---------- */
 function ordersView() {
   const list = orders.filter(o => ordersFilter === "all" || ["new", "preparing", "ready"].includes(o.status));
   let h = '<div class="row"><h2 style="margin:0">Orders</h2><select style="width:auto" onchange="ordersFilter=this.value;view()"><option value="active"' + (ordersFilter === "active" ? " selected" : "") + '>Active</option><option value="all"' + (ordersFilter === "all" ? " selected" : "") + '>All</option></select></div><br>';
@@ -254,6 +291,7 @@ window.ordersFilter = "active"; Object.defineProperty(window, "ordersFilter", { 
 window.view = view;
 window.setStatus = (id, status) => updateDoc(doc(db, "restaurants", user.uid, "orders", id), { status });
 
+/* ---------- Menu ---------- */
 function menuView() {
   const cats = R.categories || [];
   let h = '<div class="row"><h2 style="margin:0">Manage Menu</h2><button class="btn" onclick="editItem()">+ Add dish</button></div><br>';
@@ -332,6 +370,7 @@ window.saveItem = async () => {
   } catch (e) { alert("Could not save: " + e.message); }
 };
 
+/* ---------- Informations ---------- */
 function infoView() {
   return '<h2>Edit Restaurant Information</h2><div class="card">' +
     '<label>Restaurant name</label><input id="rn" value="' + esc(R.name) + '">' +
@@ -351,6 +390,7 @@ window.saveInfo = async () => {
   try { await saveR(p); tmp = {}; alert("Saved. Your public page is updated."); } catch (e) { alert("Could not save: " + e.message); }
 };
 
+/* ---------- Horaires ---------- */
 function hoursView() {
   const H = R.hours || {};
   return '<h2>Opening Hours</h2><div class="card">' + DAYS.map(([k, n]) => {
@@ -364,6 +404,7 @@ window.saveHours = async () => {
   try { await saveR({ hours }); alert("Saved."); } catch (e) { alert(e.message); }
 };
 
+/* ---------- Parametres ---------- */
 function settingsView() {
   const S = { accepting: true, pickup: true, delivery: true, deliveryFee: 0, taxRate: 0, minOrder: 0, ...(R.settings || {}) };
   return '<h2>Restaurant Settings</h2><div class="card">' +
@@ -373,7 +414,8 @@ function settingsView() {
     '<label>Delivery fee ($)</label><input id="sf" type="number" step="0.01" min="0" value="' + S.deliveryFee + '">' +
     '<label>Sales tax (%)</label><input id="st" type="number" step="0.01" min="0" value="' + S.taxRate + '">' +
     '<label>Minimum order ($)</label><input id="sm" type="number" step="0.01" min="0" value="' + S.minOrder + '">' +
-    '<button class="btn" style="width:100%" onclick="saveSettings()">Save</button></div>';
+    '<button class="btn" style="width:100%" onclick="saveSettings()">Save</button></div>' +
+    '<div class="card muted">Online card payments (Stripe): not enabled yet. The data structure is ready (field <i>stripe</i> in your restaurant record).</div>';
 }
 window.saveSettings = async () => {
   const settings = { accepting: $("sa").checked, pickup: $("sp").checked, delivery: $("sd").checked, deliveryFee: parseFloat($("sf").value) || 0, taxRate: parseFloat($("st").value) || 0, minOrder: parseFloat($("sm").value) || 0 };
