@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Owner Panel | RESTO COMMANDE</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#222">
+<style>
+:root{--p:#c8102e;--bd:#e3ddd2;--mut:#6b6b6b}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f1ec;color:#1f1f1f}
+.top{background:#222;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.wrap{max-width:900px;margin:0 auto;padding:12px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:9px 12px;font:inherit;font-weight:600;background:var(--p);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.gr{background:#2e7d32}.btn.dk{background:#555}.btn.sec{background:#fff;color:var(--p);border:2px solid var(--p)}
+input{width:100%;padding:11px;border:1px solid #cfc8bd;border-radius:10px;font:inherit;margin:4px 0 10px}
+.muted{color:var(--mut);font-size:13px;word-break:break-all}
+.badge{padding:3px 9px;border-radius:12px;font-size:12px;font-weight:700;color:#fff}
+.b-trial{background:#f57c00}.b-active{background:#2e7d32}.b-expired,.b-suspended{background:#d32f2f}.b-legacy{background:#777}
+.gap>*{margin:6px 6px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:12px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--p)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, getDocs, doc, updateDoc, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const ADMIN_UID = "FaQEoCRF99eag6xcal35qz1zPdr1";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let list = [], q = "";
+
+function loginScreen(msg) {
+  $("root").innerHTML = '<div class="wrap" style="max-width:380px;margin-top:40px"><div class="card"><h2>Owner Panel</h2>' +
+    '<input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password" autocomplete="current-password">' +
+    '<div style="color:#b00020;min-height:18px">' + esc(msg || "") + '</div><button class="btn" style="width:100%" onclick="doLogin()">Log in</button></div></div>';
+}
+window.doLogin = async () => {
+  try { await signInWithEmailAndPassword(auth, $("em").value.trim(), $("pw").value); }
+  catch (e) { loginScreen("Wrong email or password."); }
+};
+window.logout = () => signOut(auth);
+
+onAuthStateChanged(auth, async u => {
+  if (!u) return loginScreen();
+  if (u.uid !== ADMIN_UID) {
+    $("root").innerHTML = '<div class="wrap"><div class="card"><h3>Access denied</h3><p class="muted">Your ID: ' + esc(u.uid) + '</p><button class="btn dk" onclick="logout()">Log out</button></div></div>';
+    return;
+  }
+  await load();
+});
+
+async function load() {
+  $("root").innerHTML = '<div class="wrap">Loading…</div>';
+  const s = await getDocs(collection(db, "restaurants"));
+  list = s.docs.map(d => ({ id: d.id, ...d.data() }));
+  draw();
+}
+
+function info(r) {
+  const s = r.sub;
+  if (!s || !s.expiresAt) return { k: "legacy", label: "No limit (legacy)", left: null };
+  const ms = s.expiresAt.toMillis(), left = ms - Date.now();
+  const date = new Date(ms).toLocaleDateString();
+  if (s.status === "suspended") return { k: "suspended", label: "Suspended", left: -1 };
+  if (left <= 0) return { k: "expired", label: "Expired on " + date, left: -1 };
+  const days = Math.ceil(left / 86400000);
+  return { k: s.status === "trial" ? "trial" : "active", label: (s.status === "trial" ? "Trial" : "Active") + " · " + days + " day(s) left · until " + date, left: days };
+}
+
+function draw() {
+  const rows = list.map(r => ({ r, i: info(r) }));
+  const cnt = k => rows.filter(x => x.i.k === k).length;
+  const f = q.toLowerCase();
+  const shown = rows.filter(x => !f || ((x.r.name || "") + " " + (x.r.email || "") + " " + x.r.id).toLowerCase().includes(f));
+  let h = '<div class="top"><b>Owner Panel</b><button class="btn dk" onclick="logout()">Log out</button></div><div class="wrap">' +
+    '<div class="grid"><div class="stat"><b>' + rows.length + '</b>Restaurants</div><div class="stat"><b>' + cnt("active") + '</b>Active</div><div class="stat"><b>' + cnt("trial") + '</b>Trial</div><div class="stat"><b>' + (cnt("expired") + cnt("suspended")) + '</b>Expired</div></div>' +
+    '<input placeholder="Search name, email or ID" value="' + esc(q) + '" oninput="q=this.value;draw()">';
+  shown.forEach(({ r, i }) => {
+    h += '<div class="card"><div class="row"><b>' + esc(r.name || "(no name)") + '</b><span class="badge b-' + i.k + '">' + esc(i.k) + '</span></div>' +
+      '<div class="muted">' + esc(r.email || "") + '<br>' + esc(r.id) + '</div><p>' + esc(i.label) + '</p><div class="gap">' +
+      '<button class="btn gr" onclick="ext(\'' + r.id + '\',1)">+1 month</button>' +
+      '<button class="btn gr" onclick="ext(\'' + r.id + '\',3)">+3 months</button>' +
+      '<button class="btn sec" onclick="sus(\'' + r.id + '\')">Suspend</button>' +
+      '<a class="btn dk" target="_blank" href="index.html?r=' + esc(r.id) + '">Open page</a></div></div>';
+  });
+  $("root").innerHTML = h + '</div>';
+}
+Object.defineProperty(window, "q", { get: () => q, set: v => q = v });
+window.draw = draw;
+
+window.ext = async (id, months) => {
+  const r = list.find(x => x.id === id);
+  if (!confirm("Add " + months + " month(s) to " + (r.name || id) + "?")) return;
+  const cur = r.sub && r.sub.expiresAt ? r.sub.expiresAt.toMillis() : 0;
+  const keep = r.sub && r.sub.status !== "suspended" && cur > Date.now();
+  const d = new Date(keep ? cur : Date.now());
+  d.setMonth(d.getMonth() + months);
+  try {
+    await updateDoc(doc(db, "restaurants", id), { sub: { status: "active", plan: months + "m", expiresAt: Timestamp.fromDate(d) } });
+    await load();
+  } catch (e) { alert("Error: " + e.message); }
+};
+window.sus = async id => {
+  const r = list.find(x => x.id === id);
+  if (!confirm("Suspend " + (r.name || id) + "?")) return;
+  try {
+    await updateDoc(doc(db, "restaurants", id), { sub: { status: "suspended", plan: (r.sub && r.sub.plan) || "", expiresAt: Timestamp.fromMillis(Date.now() - 1000) } });
+    await load();
+  } catch (e) { alert("Error: " + e.message); }
+};
+</script>
+</body>
+  </html>
