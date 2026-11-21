@@ -230,6 +230,8 @@ function view() {
 }
 
 /* ---------- Abonnement ---------- */
+const WORKER_URL = "https://resto-activa.alkaolimited.workers.dev";
+const BUY_URL = "";
 function subInfo() {
   const s = R && R.sub;
   if (!s || !s.expiresAt) return { legacy: true, active: true };
@@ -245,12 +247,29 @@ function banner() {
 }
 function subView() {
   const s = subInfo();
-  const wa = "https://wa.me/22890659204?text=" + encodeURIComponent("Hi, I want to subscribe / renew RESTO COMMANDE. My account: " + (user.email || ""));
   const st = s.legacy ? "Active" : s.active ? (s.status === "trial" ? "Free trial" : "Active") + " — " + s.days + " day(s) left (until " + s.date.toLocaleDateString() + ")" : "Expired on " + s.date.toLocaleDateString();
-  return '<h2>Subscription</h2><div class="card"><b>Status</b><p>' + esc(st) + '</p>' +
-    '<p class="muted">Plans: 1 month or 3 months. Contact us to subscribe or renew. Online payment is coming soon.</p>' +
-    '<a class="btn" style="display:block;text-align:center" target="_blank" href="' + esc(wa) + '">Subscribe / Renew on WhatsApp</a></div>';
+  return '<h2>Subscription</h2><div class="card"><b>Status</b><p>' + esc(st) + '</p></div>' +
+    '<div class="card"><b>Activate or renew</b>' +
+    '<p class="muted">1 month: $25 &nbsp;|&nbsp; 3 months: $60. Buy a plan, then enter the license code you receive by email.</p>' +
+    (BUY_URL ? '<a class="btn" style="display:block;text-align:center" target="_blank" href="' + esc(BUY_URL) + '">Buy a subscription</a>' : '') +
+    '<p style="margin:14px 0 6px"><b>Have a code?</b></p>' +
+    '<input id="lic" placeholder="Paste your license code" autocapitalize="off" autocomplete="off" style="width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;margin-bottom:8px">' +
+    '<button class="btn" id="licBtn" style="width:100%" onclick="redeem()">Activate</button>' +
+    '<p id="licMsg" style="margin:10px 0 0"></p></div>';
 }
+window.redeem = async () => {
+  const code = ($("lic").value || "").trim(), msg = $("licMsg"), btn = $("licBtn");
+  if (!code) { msg.style.color = "#d32f2f"; msg.textContent = "Please enter your code."; return; }
+  btn.disabled = true; msg.style.color = "#555"; msg.textContent = "Checking…";
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const r = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, idToken }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) { msg.style.color = "#2e7d32"; msg.textContent = "Subscription activated! " + d.months + " month(s) added."; }
+    else { msg.style.color = "#d32f2f"; msg.textContent = d.error || "Something went wrong. Please try again."; }
+  } catch (e) { msg.style.color = "#d32f2f"; msg.textContent = "Network error. Please try again."; }
+  btn.disabled = false;
+};
 
 /* ---------- Dashboard ---------- */
 function pageUrl() { return location.href.replace(/admin\.html.*$/, "") + "index.html?r=" + user.uid; }
@@ -424,4 +443,4 @@ window.saveSettings = async () => {
 };
 </script>
 </body>
-  </html>
+</html>
