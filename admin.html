@@ -231,7 +231,8 @@ function view() {
 
 /* ---------- Abonnement ---------- */
 const WORKER_URL = "https://resto-activa.alkaolimited.workers.dev";
-const BUY_URL = "https://yeyxveju.mychariow.store/prd_njfd0te0";
+const BUY_1 = "https://yeyxveju.mychariow.store/prd_njfd0te0";
+const BUY_3 = "https://yeyxveju.mychariow.store/prd_194urz0y";
 function subInfo() {
   const s = R && R.sub;
   if (!s || !s.expiresAt) return { legacy: true, active: true };
@@ -250,8 +251,9 @@ function subView() {
   const st = s.legacy ? "Active" : s.active ? (s.status === "trial" ? "Free trial" : "Active") + " — " + s.days + " day(s) left (until " + s.date.toLocaleDateString() + ")" : "Expired on " + s.date.toLocaleDateString();
   return '<h2>Subscription</h2><div class="card"><b>Status</b><p>' + esc(st) + '</p></div>' +
     '<div class="card"><b>Activate or renew</b>' +
-    '<p class="muted">1 month: $25 &nbsp;|&nbsp; 3 months: $60. Buy a plan, then enter the license code you receive by email.</p>' +
-    (BUY_URL ? '<a class="btn" style="display:block;text-align:center" target="_blank" href="' + esc(BUY_URL) + '">Buy a subscription</a>' : '') +
+    '<p class="muted">Buy a plan, then enter the license code you receive by email.</p>' +
+    '<a class="btn" style="display:block;text-align:center;margin-bottom:8px" target="_blank" href="' + esc(BUY_1) + '">Buy 1 month — $25</a>' +
+    '<a class="btn sec" style="display:block;text-align:center" target="_blank" href="' + esc(BUY_3) + '">Buy 3 months — $60</a>' +
     '<p style="margin:14px 0 6px"><b>Have a code?</b></p>' +
     '<input id="lic" placeholder="Paste your license code" autocapitalize="off" autocomplete="off" style="width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;margin-bottom:8px">' +
     '<button class="btn" id="licBtn" style="width:100%" onclick="redeem()">Activate</button>' +
