@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Online Ordering System for Restaurants | Resto Commande</title>
-<meta name="description" content="Get online orders for your restaurant. Pickup and delivery, your own ordering link, live order dashboard, edit your menu from your phone. Start a 7-day free trial.">
+<meta name="description" content="Get online orders for your restaurant. Pickup and delivery, your own ordering link, live order dashboard, edit your menu yourself. 7-day free trial, then $25/month.">
 <meta name="robots" content="index,follow">
 <link rel="manifest" href="manifeste.json">
 <style>
@@ -14,23 +14,24 @@ h1{margin:0 0 10px;font-size:28px}h2{color:#c8102e}
 main{max-width:700px;margin:auto;padding:16px}
 li{margin:6px 0}
 .btn{display:block;text-align:center;background:#c8102e;color:#fff;text-decoration:none;font-weight:bold;padding:14px;border-radius:8px;margin:16px 0}
-.wa{background:#25d366}
 .btn2{background:#fff;color:#c8102e;border:2px solid #c8102e}
-.note{text-align:center;color:#666;font-size:14px;margin-top:-8px}
+.plans{display:flex;gap:12px;flex-wrap:wrap}
+.plan{flex:1;min-width:220px;border:2px solid #eee;border-radius:12px;padding:16px;text-align:center}
+.plan b{display:block;font-size:26px;color:#c8102e}
 footer{text-align:center;color:#777;padding:20px;font-size:13px}
 </style>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Service","name":"Restaurant Online Ordering System","description":"Online ordering website for restaurants with pickup, delivery and an owner dashboard.","provider":{"@type":"Organization","name":"Resto Commande"},"areaServed":"US"}
+{"@context":"https://schema.org","@type":"Service","name":"Restaurant Online Ordering System","description":"Online ordering website for restaurants with pickup, delivery and an owner dashboard.","provider":{"@type":"Organization","name":"Resto Commande"},"areaServed":"US","offers":[{"@type":"Offer","name":"1 month","price":"25","priceCurrency":"USD"},{"@type":"Offer","name":"3 months","price":"60","priceCurrency":"USD"}]}
 </script>
 </head>
 <body>
 <header>
 <h1>Get Online Orders for Your Restaurant</h1>
-<p>Your menu, your ordering link, your orders on your phone.</p>
+<p>Your menu, your ordering link, your orders on your phone, tablet or computer.</p>
 </header>
 <main>
 <a class="btn" href="admin.html">Start your 7-day free trial</a>
-<p class="note">Tap "New restaurant? Create account". No card needed.</p>
+<p style="text-align:center;margin-top:-6px;color:#666">No credit card needed. Set up in minutes.</p>
 
 <h2>What you get</h2>
 <ul>
@@ -40,7 +41,7 @@ footer{text-align:center;color:#777;padding:20px;font-size:13px}
 <li>Owner dashboard: see new orders instantly</li>
 <li>Edit prices, dishes, phone and opening hours yourself</li>
 <li>Your own ordering link for Instagram, Facebook and Google</li>
-<li>Installs on your phone like an app</li>
+<li>Works on phone, tablet and computer</li>
 </ul>
 
 <h2>See it live</h2>
@@ -48,14 +49,19 @@ footer{text-align:center;color:#777;padding:20px;font-size:13px}
 
 <h2>How it works</h2>
 <ol>
-<li>Create your free account in one minute.</li>
-<li>Add your menu, logo and opening hours.</li>
+<li>Create your free account.</li>
+<li>Add your menu, logo and contact details.</li>
 <li>Share your ordering link and start receiving orders.</li>
 </ol>
 
 <h2>Pricing</h2>
-<p>7 days free. Then a simple plan: 1 month or 3 months. Message us for pricing or help setting up.</p>
-<a class="btn wa" href="https://wa.me/22890659204?text=Hi%2C%20I%20want%20online%20ordering%20for%20my%20restaurant">Message us on WhatsApp</a>
+<p>7 days free. Then choose a plan. Cancel anytime by not renewing.</p>
+<div class="plans">
+<div class="plan"><b>$25</b>1 month</div>
+<div class="plan"><b>$60</b>3 months<br><small>Best value</small></div>
+</div>
+<p>Pay securely online, get your license code instantly, and activate it from your dashboard. No phone calls needed.</p>
+<a class="btn" href="admin.html">Start your free trial</a>
 </main>
 <footer>&copy; Resto Commande</footer>
 </body>
