@@ -51,7 +51,8 @@ input,textarea,select{width:100%;padding:11px;border:1px solid #cfc8bd;border-ra
 .center{text-align:center;padding:40px 16px}
 .closed{background:#fff3cd;color:#664d03;padding:10px 16px;text-align:center;font-weight:600}
 footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
-</style><link rel="stylesheet" href="desktop.css">
+</style>
+<link rel="stylesheet" href="desktop.css">
 </head>
 <body>
 <div class="wrap" id="app"><div class="center">Loading…</div></div>
@@ -72,6 +73,12 @@ const $ = id => document.getElementById(id);
 const saveCart = () => { try { localStorage.setItem("cart_" + rid, JSON.stringify(cart)); } catch (e) {} };
 const EMOJI = { burger: "🍔", sandwich: "🥪", pizza: "🍕", side: "🍟", dessert: "🍰", drink: "🥤" };
 const emo = c => { c = (c || "").toLowerCase(); for (const k in EMOJI) if (c.includes(k)) return EMOJI[k]; return "🍽️"; };
+const expired = () => {
+  const s = R && R.sub;
+  if (!s || !s.expiresAt) return false;
+  const ms = s.expiresAt.toMillis ? s.expiresAt.toMillis() : Number(s.expiresAt);
+  return ms < Date.now();
+};
 const set = () => ({ accepting: true, pickup: true, delivery: true, deliveryFee: 0, taxRate: 0, minOrder: 0, ...(R.settings || {}) });
 
 if (!rid) {
@@ -105,6 +112,11 @@ function render() {
   const app = $("app");
   if (R === null) return;
   if (R === "none") { app.innerHTML = '<div class="center"><h2>Restaurant not found</h2></div>'; return; }
+  if (expired()) {
+    app.innerHTML = '<div class="center"><h2>' + esc(R.name) + '</h2><p>Online ordering is temporarily unavailable.</p>' +
+      (R.phone ? '<p><a class="btn pri" href="tel:' + esc(R.phone) + '">📞 Call Restaurant</a></p>' : '') + '</div>';
+    return;
+  }
   const S = set();
   const cats = (R.categories || []).filter(c => items.some(i => i.category === c));
   const tel = R.phone ? 'href="tel:' + esc(R.phone) + '"' : 'onclick="alert(\'Phone number not available\')"';
@@ -254,4 +266,4 @@ window.placeOrder = async () => {
 };
 </script>
 </body>
-</html>
+  </html>
